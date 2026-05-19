@@ -128,13 +128,11 @@ public class IoStoreReader : UnrealFileReader
             var archive = GetArchive(indexAndOffset.index);
 
             archive.Position = indexAndOffset.offset;
-            var buffer = DecryptIfEncrypted(archive.ReadBytes((int)block.CompressedSize));
+            var size = (int)block.CompressedSize + Aes.ALIGN - 1 & ~(Aes.ALIGN - 1);
+            var buffer = DecryptIfEncrypted(archive.ReadBytes(size));
             var decompressed = CompressionHandler.HandleDecompression(this, block.CompressionMethodIndex, buffer, (int)block.UncompressedSize);
-
-            if (offset + decompressed.Length > data.Length)
-                throw new OutOfMemoryException("The buffer given is too small to receive all of these blocks");
             
-            Buffer.BlockCopy(decompressed, 0, data, offset, decompressed.Length);
+            Buffer.BlockCopy(decompressed, 0, data, offset, (int)block.UncompressedSize);
             offset += decompressed.Length;
         }
     }
