@@ -170,7 +170,7 @@ public class UObject
         
         if (Owner.HasUnversionedProperties)
         {
-            UnversionedPropertyHandler.SerializeProperties((ZenAsset)Owner, writer, Class, Properties);
+            UnversionedPropertyHandler.SerializeProperties((IoAsset)Owner, writer, Class, Properties);
         }
         else
         {

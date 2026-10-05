@@ -19,6 +19,8 @@ public class FIoStoreTocResource
     public readonly int[]? ChunkIndicesWithoutPerfectHash;
     public readonly string[] CompressionMethods;
     public readonly long DirectoryIndexPosition = -1;
+    public readonly EIoEncryptionMethod EncryptionMethod;
+    public readonly FIoStoreEncryptionIV[] EncryptionIVs;
     
     // Encryption
     private FAesKey? AesKey;
@@ -28,6 +30,8 @@ public class FIoStoreTocResource
     {
         AesKey = key;
     }
+
+    public long BlockHashesPosition;
     
     public FIoStoreTocResource(Reader reader)
     {
@@ -86,6 +90,15 @@ public class FIoStoreTocResource
                 CompressionBlocks[i] = new FIoStoreTocCompressedBlockEntry(reader);
         }
 
+        var directoryIndexIVCount = Header.ContainerFlags.HasFlag(EIoContainerFlags.Indexed) ? 1 : 0;
+        var expectedIVCount = Header.EncryptionMethod == EIoEncryptionMethod.AES_CTR ? Header.TocCompressedBlockEntryCount + directoryIndexIVCount : 0;
+        
+        if (Header.EncryptionIVCount != expectedIVCount)
+            throw new Exception($"TOC has {Header.EncryptionIVCount} encryption IVs but {Header.EncryptionMethod} over {Header.TocCompressedBlockEntryCount} compression bocks needs {expectedIVCount}");
+
+        EncryptionMethod = Header.EncryptionMethod;
+        EncryptionIVs = Header.EncryptionIVCount > 0 ? reader.ReadArray(() => new FIoStoreEncryptionIV(reader), (int)Header.EncryptionIVCount) : [];
+        
         var length = (int)Header.CompressionMethodNameLength;
         
         CompressionMethods = new string[Header.CompressionMethodNameCount + 1];
@@ -102,7 +115,9 @@ public class FIoStoreTocResource
         if (Header.ContainerFlags.HasFlag(EIoContainerFlags.Signed))
         {
             var hashSize = reader.Read<int>();
-            reader.Position += hashSize + hashSize + 20 * Header.TocCompressedBlockEntryCount; // 20 = sizeof(FSHAHash)
+            reader.Position += hashSize + hashSize;
+            BlockHashesPosition = reader.Position;
+            reader.Position += 20 * Header.TocCompressedBlockEntryCount; // 20 = sizeof(FSHAHash)
         }
 
         if (Header.Version >= EIoStoreTocVersion.DirectoryIndex

@@ -49,13 +49,13 @@ public sealed class ResolvedExportObject : ResolvedObject
 
     public void Load()
     {
-        var zen = (ZenAsset)Package;
+        var zen = (IoAsset)Package;
         var map = zen.ExportMap;
         if (ExportIndex >= map.Length)
             return;
         
         ExportMapEntry = map[ExportIndex];
-        Object = zen.Exports[ExportIndex];
+        Object = zen[ExportMapEntry.Name];
     }
 
     public UObject? GetObject()
@@ -69,13 +69,13 @@ public class ResolvedScriptObject : ResolvedObject
 {
     public FScriptObjectEntry ScriptImport;
 
-    public ResolvedScriptObject(FScriptObjectEntry scriptImport, ZenAsset package) : base(package)
+    public ResolvedScriptObject(FScriptObjectEntry scriptImport, IoAsset package) : base(package)
     {
         ScriptImport = scriptImport;
     }
 
-    public override FName Name => ScriptImport.GetObjectName(Package.As<ZenAsset>().GlobalData 
+    public override FName Name => ScriptImport.GetObjectName(Package.As<IoAsset>().GlobalData 
                                                              ?? throw new NoNullAllowedException("Global Data cannot be null."));
-    public override ResolvedObject? Outer => Package.As<ZenAsset>().ResolveObjectIndex(ScriptImport.OuterIndex);
+    public override ResolvedObject? Outer => Package.As<IoAsset>().ResolveObjectIndex(ScriptImport.OuterIndex);
     public override ResolvedObject? Class => null;
 }

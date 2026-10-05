@@ -80,7 +80,7 @@ public static class UnversionedPropertyHandler
 	    return properties;
     }
     
-    public static void SerializeProperties(ZenAsset? asset, Writer writer, UStruct struc, List<UProperty> properties)
+    public static void SerializeProperties(IoAsset? asset, Writer writer, UStruct struc, List<UProperty> properties)
     {
 	    Information($"Serializing {struc.Name} with {properties.Count} properties");
 	    Information($"Sorting {properties.Count} properties");

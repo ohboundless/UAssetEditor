@@ -186,9 +186,14 @@ public class UProperty
         IsZero = isZero;
     }
 
-    public T? GetValue<T>() where T : class
+    public T? GetValue<T>()
     {
-        return Value as T;
+        return Value switch
+        {
+            AbstractProperty abstractProperty => (T?)abstractProperty.ValueAsObject,
+            T result => result,
+            _ => default
+        };
     }
 
     public UProperty? this[string name]

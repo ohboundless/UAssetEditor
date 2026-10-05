@@ -59,6 +59,11 @@ public class FIoStoreEntry : UnrealFileEntry
         return blocks;
     }
 
+    public FIoStoreTocCompressedBlockEntry[] GetCompressionBlocks()
+    {
+        return GetCompressionBlocks(GetIoFile().ReaderAsIoReader, GetOffsetAndLength());
+    }
+
     public override byte[] Read()
     {
         var offsetLength = GetOffsetAndLength();

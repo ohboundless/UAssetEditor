@@ -170,6 +170,7 @@ public static class PropertyReflector
         { "SoftObjectProperty", typeof(SoftObjectProperty) },
         { "ScriptInterface", typeof(ObjectProperty) },
         { "ObjectProperty", typeof(ObjectProperty) },
+        { "InterfaceProperty", typeof(ObjectProperty) },
         { "MapProperty", typeof(MapProperty) },
         { "MulticastDelegateProperty", typeof(MulticastDelegateProperty) }
     };

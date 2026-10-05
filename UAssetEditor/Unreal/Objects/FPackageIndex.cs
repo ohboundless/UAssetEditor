@@ -45,7 +45,7 @@ public class FPackageIndex : IUnrealType
 
         if (IsExport)
         {
-            if (Owner is ZenAsset zen)
+            if (Owner is IoAsset zen)
             {
                 var i = Index - 1;
                 if (i < zen.ExportMap.Length)

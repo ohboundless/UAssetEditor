@@ -79,7 +79,7 @@ public class UCurveTable : UObject
         foreach (var row in RowMap)
         {
             row.Key.Serialize(writer, Owner!.NameMap);
-            UnversionedPropertyHandler.SerializeProperties((ZenAsset)Owner!, writer, rowStruct, row.Value);
+            UnversionedPropertyHandler.SerializeProperties((IoAsset)Owner!, writer, rowStruct, row.Value);
         }
     }
 }

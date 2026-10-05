@@ -21,7 +21,7 @@ using UAssetEditor.Utils;
 
 namespace UAssetEditor.Unreal.Assets;
 
-public class ZenAsset : Asset
+public class IoAsset : Asset
 {
     public IoGlobalReader? GlobalData;
     public IoStoreReader? IoReader => Reader as IoStoreReader;
@@ -40,11 +40,19 @@ public class ZenAsset : Asset
     public FZenPackageImportedPackageNamesContainer ImportedPackageNamesContainer = new();
 
     public List<FPackageId>? ImportedPackageIds;
+
+    public IoAsset(byte[] data, UnrealFileSystem? system = null, UnrealFileReader? reader = null) : base(data, system,
+        reader)
+    {
+        if (system == null)
+            return;
+        
+        Game = system.Game;
+        Mappings = system.Mappings;
+        GlobalData = system.GetGlobalReader();
+    }
     
-    public ZenAsset(byte[] data, UnrealFileSystem? system = null, UnrealFileReader? reader = null) : base(data, system, reader)
-    { }
-    
-    public ZenAsset(string path) : this(File.ReadAllBytes(path))
+    public IoAsset(string path) : this(File.ReadAllBytes(path))
     { }
 
     /// <summary>
@@ -122,8 +130,7 @@ public class ZenAsset : Asset
 
             obj.Class = new UStruct(schema, Mappings);
 
-            var position = isFromHeader ? pos:
-                headerSize + (long)export.CookedSerialOffset;
+            var position = isFromHeader ? pos : headerSize + (long)export.CookedSerialOffset;
             var validPos = position + (long)export.CookedSerialSize;
             obj.Deserialize(position);
 
@@ -354,7 +361,7 @@ public class ZenAsset : Asset
             // Write NameMap
             NameMapContainer.WriteNameMap(writer, NameMap);
 
-            writer.Write<long>(0); // pakSize
+            writer.Write<long>(0); // padSize
             writer.Write<long>(BulkDataMap.Length * FBulkDataMapEntry.SIZE); // bulkDataMapSize
 
             foreach (var entry in BulkDataMap)
@@ -544,9 +551,12 @@ public class ZenAsset : Asset
                         return null;
                     }
 
-                    for (var exportIndex = 0; exportIndex < pkg.ExportMap.Length; exportIndex++)
+                    if (pkg is not IoAsset ioPkg)
+                        throw new InvalidCastException($"Package is not IoAsset. ({pkg})");
+                    
+                    for (var exportIndex = 0; exportIndex < ioPkg.ExportMap.Length; exportIndex++)
                     {
-                        if (pkg.ExportMap[exportIndex].PublicExportHash ==
+                        if (ioPkg.ExportMap[exportIndex].PublicExportHash ==
                             ImportedPublicExportHashes![packageImportRef.ImportedPublicExportHashIndex])
                         {
                             return new ResolvedExportObject(pkg, exportIndex);
@@ -569,9 +579,12 @@ public class ZenAsset : Asset
                         return null;
                     }
 
-                    for (var exportIndex = 0; exportIndex < pkg.ExportMap.Length; exportIndex++)
+                    if (pkg is not IoAsset ioPkg)
+                        throw new InvalidCastException($"Package is not IoAsset. ({pkg})");
+                    
+                    for (var exportIndex = 0; exportIndex < ioPkg.ExportMap.Length; exportIndex++)
                     {
-                        if (pkg.ExportMap[exportIndex].GlobalImportIndex != index) 
+                        if (ioPkg.ExportMap[exportIndex].GlobalImportIndex != index) 
                             continue;
                         
                         pkg.Position = 0;
@@ -603,7 +616,7 @@ public class ExportContainer : Container<FExportMapEntry>
 	public ExportContainer(List<FExportMapEntry> items) : base(items)
 	{ }
 
-	public static ExportContainer Read(ZenAsset asset, FZenPackageSummary summary, FZenPackageCellOffsets? cellOffsets)
+	public static ExportContainer Read(IoAsset asset, FZenPackageSummary summary, FZenPackageCellOffsets? cellOffsets)
 	{
 		var size = cellOffsets.HasValue
 			? cellOffsets.Value.CellImportMapOffset - summary.ExportMapOffset
@@ -612,7 +625,7 @@ public class ExportContainer : Container<FExportMapEntry>
 			.ToList());
 	}
     
-    public static ExportContainer Read(ZenAsset asset, FPackageSummary summary)
+    public static ExportContainer Read(IoAsset asset, FPackageSummary summary)
     {
         var size = summary.ExportBundlesOffset - summary.ExportMapOffset;
         return new ExportContainer(asset.ReadArray(() => new FExportMapEntry(asset), size / FExportMapEntry.Size)

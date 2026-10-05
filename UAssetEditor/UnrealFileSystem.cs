@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Data;
 using System.Runtime.InteropServices.Marshalling;
 using OodleDotNet;
 using Serilog;
@@ -23,8 +24,7 @@ public class UnrealFileSystem
     public Dictionary<FGuid, FAesKey> AesKeys = new();
     
     private string _directory;
-    public readonly IEnumerable<string> Files;
-    public int MountedFiles { get; private set; }
+    public int MountedFilesCount => Containers.Count;
     
     public ConcurrentDictionary<string, UnrealFileEntry> Packages { get; } = new();
 
@@ -39,7 +39,6 @@ public class UnrealFileSystem
     {
         _directory = directory;
         Game = gameVersion;
-        Files = Directory.EnumerateFiles(_directory);
         _containers = new List<ContainerFile>();
     }
 
@@ -103,7 +102,6 @@ public class UnrealFileSystem
             {
                 container = new IoFile(file, this);
                 container.Mount();
-                MountedFiles++;
 
                 if (unloadContainerIfNoFilesFound)
                 {
@@ -191,10 +189,10 @@ public class UnrealFileSystem
             case FIoStoreEntry ioEntry:
             {
                 var data = ioEntry.Read();
-                asset = new ZenAsset(data, this, ctn.Reader as UnrealFileReader);
+                asset = new IoAsset(data, this, ctn.Reader as UnrealFileReader);
 
                 var globalToc = GetGlobalReader();
-                asset.As<ZenAsset>().Initialize(globalToc!);
+                asset.As<IoAsset>().Initialize(globalToc!);
 
                 asset.Game = Game;
                 asset.Mappings = Mappings;
@@ -221,23 +219,19 @@ public class UnrealFileSystem
         return TryExtractAsset(pkg, ctn, out asset);
     }
 
-    public bool TryExtractAndRead(FPackageId packageId, out ZenAsset? asset, bool onlyReadHeader = false)
+    public bool TryExtractAndRead(UnrealFileEntry entry, out Asset? asset, bool onlyReadHeader = false)
     {
-        if (!TryGetPackage(packageId, out var entry, out var ctn))
+        if (entry.Owner == null)
+            throw new NoNullAllowedException("Cannot extract asset without a valid container.");
+        
+        if (!TryExtractAsset(entry, entry.Owner, out var extractedAsset))
         {
-            Log.Error("Could not find package!");
+            Error("Found file via id, but system was unable to extract.");
             asset = null;
             return false;
         }
 
-        if (!TryExtractAsset(entry, ctn, out var _asset))
-        {
-            Log.Error("Found file via id, but system was unable to extract.");
-            asset = null;
-            return false;
-        }
-
-        if (_asset is ZenAsset pkg)
+        if (extractedAsset is IoAsset pkg)
         {
             Information($"Reading package: '{entry.Path}'");
             
@@ -252,5 +246,29 @@ public class UnrealFileSystem
 
         asset = null;
         return false;
+    }
+    
+    public bool TryExtractAndRead(FPackageId packageId, out Asset? asset, bool onlyReadHeader = false)
+    {
+        if (!TryGetPackage(packageId, out var entry, out var ctn))
+        {
+            Error("Could not find package!");
+            asset = null;
+            return false;
+        }
+        
+        return TryExtractAndRead(entry, out asset, onlyReadHeader);
+    }
+
+    public bool TryExtractAndRead(string packagePath, out Asset asset, bool onlyReadHeader = false)
+    {
+        if (!TryGetPackage(packagePath, out var entry, out var ctn))
+        {
+            Error("Could not find package!");
+            asset = null;
+            return false;
+        }
+
+        return TryExtractAndRead(entry, out asset, onlyReadHeader);
     }
 }

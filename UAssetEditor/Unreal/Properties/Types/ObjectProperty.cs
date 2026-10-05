@@ -58,11 +58,11 @@ public class ObjectProperty : AbstractProperty<FPackageIndex>
                     var exportName = obj.Package.Exports[obj.ExportIndex].Name;
                     obj.ReloadPackage(asset.System);
                     
-                    var zen = (ZenAsset)obj.Package;
+                    var zen = (IoAsset)obj.Package;
                     var index = zen.ExportMap.GetIndex(exportName);
                     var globalImportIndex = zen.ExportMap[index].GlobalImportIndex;
 
-                    var thisAsset = (ZenAsset)asset;
+                    var thisAsset = (IoAsset)asset;
                     thisAsset.ImportMap[-Value.Index - 1] = globalImportIndex;
                     
                     Information($"Remapped '{exportName}'...");

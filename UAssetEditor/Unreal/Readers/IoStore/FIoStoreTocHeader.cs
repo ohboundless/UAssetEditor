@@ -48,13 +48,16 @@ public class FIoStoreTocHeader
     public readonly FIoContainerId ContainerId;
     public readonly FGuid EncryptionKeyGuid;
     public readonly EIoContainerFlags ContainerFlags;
-    // private readonly byte _reserved3;
-    // private readonly ushort _reserved4;
+    public EIoEncryptionMethod EncryptionMethod;
+    //public readonly ushort _reserved4;
     public readonly uint TocChunkPerfectHashSeedsCount;
     public ulong PartitionSize;
     public readonly uint TocChunksWithoutPerfectHashCount;
-    // private readonly uint _reserved7;
-    // public readonly ulong[] _reserved8;
+    public readonly uint TocSourceHashCount;
+    public uint EncryptionIVCount;
+    //private readonly uint _reserved8;
+    //private readonly ulong[] _reserved9;
+    
     
     public FIoStoreTocHeader(Reader reader)
     {
@@ -75,15 +78,15 @@ public class FIoStoreTocHeader
         PartitionCount = reader.Read<uint>();
         ContainerId = reader.Read<FIoContainerId>();
         EncryptionKeyGuid = reader.Read<FGuid>();
-
         ContainerFlags = reader.Read<EIoContainerFlags>();
-
-        reader.Position += 1 + 2; // Padding
-
+        EncryptionMethod = reader.Read<EIoEncryptionMethod>();
+        reader.Position += 2;
         TocChunkPerfectHashSeedsCount = reader.Read<uint>();
         PartitionSize = reader.Read<ulong>();
         TocChunksWithoutPerfectHashCount = reader.Read<uint>();
-
+        TocSourceHashCount = reader.Read<uint>(); // _reserved7
+        EncryptionIVCount = reader.Read<uint>(); // _reserved8[0]
+        
         reader.Position = 144; // Should be right always?
     }
 }
