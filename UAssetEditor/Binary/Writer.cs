@@ -11,9 +11,6 @@ public class Writer : BinaryWriter
     public Writer(Stream stream) : base(stream)
     { }
     
-    public Writer(string file) : this(File.Open(file, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite))
-    { }
-    
     public Writer() : base(new MemoryStream())
     { }
     

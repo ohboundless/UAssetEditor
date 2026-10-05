@@ -40,8 +40,19 @@ Console.WriteLine($"Mounted {system.MountedFilesCount} containers in {sw.Elapsed
 // Load mappings
 system.LoadMappings("++Fortnite+Release-42.30-CL-58557680_zs.usmap");
 
-if (!system.TryExtractAndRead("FortniteGame/Content/Athena/Items/Weapons/AthenaRangedWeapons.uasset", out var asset))
+// Read the asset
+if (!system.TryExtractAndRead("FortniteGame/Content/Athena/Items/Weapons/WID_Assault_Auto_Athena_C_Ore_T02.uasset", out var asset))
     throw new ApplicationException("Could not extract and read asset!");
-    
-var spread = asset["AthenaRangedWeapons"]["Rows"]["Assault_Auto_Athena_C_Ore_T03"]["Spread"].GetValue<float>();
-Console.WriteLine($"Spread for Assault_Auto_Athena_C_Ore_T03 is {spread}");
+
+// Get the property
+var rowName = asset["WID_Assault_Auto_Athena_C_Ore_T02"]["WeaponStatHandle"]["RowName"].GetValue<FName>();
+Console.WriteLine($"StatTable row name is {rowName}");
+
+// Set the new value
+rowName.Name = "Assault_Auto_Athena_C_Ore_T03";
+
+// Write
+var writer = new Writer();
+asset.WriteAll(writer);
+
+File.WriteAllBytes("WID_Assault_Auto_Athena_C_Ore_T02.uasset", writer.ToArray());
