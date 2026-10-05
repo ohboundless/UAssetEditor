@@ -12,48 +12,43 @@ An Unreal Engine UAsset API for Fortnite
 ## How to use
 ```csharp
 
-// Create system
-var system = new UnrealFileSystem(@"C:\Program Files\Epic Games\Fortnite\FortniteGame\Content\Paks", EGame.GAME_UE5_LATEST);
+// Create UnrealFileSystem
+var system = new UnrealFileSystem(@"S:\Fortnite\FortniteGame\Content\Paks", EGame.GAME_UE5_LATEST);
+system.AesKeys.Add(new FGuid(), new FAesKey("0x03C8AAEDE702DB50231125AF91F24EF9171723274AC73DFBE06C95FF9AE911D6"));
 
-// Add aes keys
-system.AesKeys.Add(new FGuid(), new FAesKey("0x0000...")); // Replace with your game's AesKey
+// Start a stopwatch
+var sw = Stopwatch.StartNew();
 
-// Mount containers
-system.Initialize();
+// Mount files
+system.Initialize(loadInParallel: false);
 
-// Initialize Oodle
-UnrealFileSystem.InitializeOodle("oo2core_9_win64.dll");
+// Stop the stopwatch
+sw.Stop();
+
+Console.WriteLine($"Mounted {system.MountedFilesCount} containers in {sw.ElapsedMilliseconds}ms");
 
 // Load mappings
-system.LoadMappings("path/to/usmap/++Fortnite+Release-xx.xx.usmap");
+system.LoadMappings("++Fortnite+Release-42.30-CL-58557680_zs.usmap");
 
-// Extract the asset
-if (!system.TryExtractAsset(
-        "FortniteGame/Plugins/GameFeatures/BRCosmetics/Content/Athena/Items/Cosmetics/Characters/CID_028_Athena_Commando_F.uasset", out var asset))
-    throw new KeyNotFoundException("Unable to find asset.");
+// Read the asset
+if (!system.TryExtractAndRead("FortniteGame/Content/Athena/Items/Weapons/WID_Assault_Auto_Athena_C_Ore_T02.uasset", out var asset))
+    throw new ApplicationException("Could not extract and read asset!");
 
-// Read all properties
-asset.ReadAll();
+// Get the property
+var rowName = asset["WID_Assault_Auto_Athena_C_Ore_T02"]["WeaponStatHandle"]["RowName"].GetValue<FName>();
+Console.WriteLine($"StatTable row name is {rowName}");
 
-// Output JSON file
-var json = asset.ToString();
-File.WriteAllText("CID_028_Athena_Commando_F.json", json);
+// Set the new value
+rowName.Name = "Assault_Auto_Athena_C_Ore_T03";
 
-// Get ItemName Property
-var text = asset["CID_028_Athena_Commando_F"]?["ItemName"]?.GetValue<TextProperty>();
-
-// Set new FText value
-text.Value.Text = "This is a new name for Renegade Raider";
-
-// Create a writer with the file path: "CID_028_Athena_Commando_F.uasset"
-var writer = new Writer("CID_028_Athena_Commando_F.uasset");
-
-// Serialize the asset and dispose the writer
+// Write
+var writer = new Writer();
 asset.WriteAll(writer);
-writer.Close();
+
+File.WriteAllBytes("WID_Assault_Auto_Athena_C_Ore_T02.uasset", writer.ToArray());
 
 // Create a new ZenAsset with the asset we just serialized
-var testAsset = new ZenAsset("CID_028_Athena_Commando_F.uasset");
+var testAsset = new ZenAsset("WID_Assault_Auto_Athena_C_Ore_T02.uasset");
 
 // Set the GlobalReader instance
 var globalToc = system.GetGlobalReader();
